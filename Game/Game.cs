@@ -20,6 +20,8 @@ class Game
     public static readonly bool Debug = true;
     public static readonly bool DebugCollision = false;
 
+    Vector2 Origin = new Vector2(600, 140);
+
     public Game()
     {
         Load();
@@ -33,15 +35,22 @@ class Game
 
     public void Update()
     {
-        Assets.DefaultFont.Draw("This is an isometric grid:", new Vector2(20, 20), Color.White);
-
-        for (int gy = 0; gy < 6; gy++)
+        int hx, hy;
         {
-            for (int gx = 0; gx < 6; gx++)
+            Vector2 query = Engine.MousePosition - Origin - new Vector2(16, 16);
+            hx = (int)Math.Floor((query.X / 32) + (query.Y / 16));
+            hy = (int)Math.Floor((-query.X / 32) + (query.Y / 16));
+        }
+
+        Assets.DefaultFont.Draw(string.Format("Hovered: {0}, {1}", hx, hy), new Vector2(20, 40), Color.White);
+
+        for (int gy = 0; gy < 20; gy++)
+        {
+            for (int gx = 0; gx < 20; gx++)
             {
                 Engine.DrawTexture(
                     Assets.Tiles,
-                    new Vector2(100 + (gx + gy) * 16, 100 - (gx - gy) * 8),
+                    Origin + new Vector2((gx - gy) * 16, (gy + gx) * 8),
                     source: new Bounds2(0, 0, 32, 32));
             }
         }
