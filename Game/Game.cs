@@ -11,6 +11,8 @@ static class Assets
     // Assets loaded from files:
     public static SpriteFont DefaultFont;
     public static Texture Tiles;
+    public static Texture PostRed;
+    public static Texture PostGreen;
 }
 
 class Game
@@ -23,10 +25,13 @@ class Game
 
     static readonly string MapFilePath = "tile.map";
     static readonly int MapFileVersion = 1;
+    static readonly float ClickToSelectRadius = 8;
 
     Vector2 Origin = new Vector2(600, 140);
     bool[,] Map;
     bool MustSaveMap = false;
+    Vector2 StartPoint, EndPoint;
+    InputState Input = new InputState();
 
     public Game()
     {
@@ -65,12 +70,17 @@ class Game
                 }
             }
         }
+
+        StartPoint = GridCellCenter(new Index2(2, 1));
+        EndPoint = GridCellCenter(new Index2(15, 5));
     }
 
     public void LoadAssets()
     {
         Assets.DefaultFont = new SpriteFont("font.png");
         Assets.Tiles = Engine.LoadTexture("tiles.png");
+        Assets.PostRed = Engine.LoadTexture("post_red.png");
+        Assets.PostGreen = Engine.LoadTexture("post_green.png");
     }
 
     public void Update()
@@ -84,11 +94,42 @@ class Game
 
         Assets.DefaultFont.Draw(string.Format("Hovered: {0}, {1}", hx, hy), new Vector2(20, 40), Color.White);
 
-        if (Engine.GetMouseButtonDown(MouseButton.Left) &&
-            hx >= 0 && hy < Map.GetLength(0) && hy >= 0 && hy < Map.GetLength(1))
+        if (Input.Mode == InputMode.Default)
         {
-            Map[hx, hy] = !Map[hx, hy];
-            MustSaveMap = true;
+            if (Engine.GetMouseButtonDown(MouseButton.Left))
+            {
+                if (StartPoint.DistanceTo(Engine.MousePosition) < ClickToSelectRadius)
+                {
+                    Input.Mode = InputMode.MovingStart;
+                }
+                else if (EndPoint.DistanceTo(Engine.MousePosition) < ClickToSelectRadius)
+                {
+                    Input.Mode = InputMode.MovingEnd;
+                }
+                else if (hx >= 0 && hx < Map.GetLength(0) && hy >= 0 && hy < Map.GetLength(1))
+                {
+                    Map[hx, hy] = !Map[hx, hy];
+                    MustSaveMap = true;
+                }
+            }
+        }
+        else if (Input.Mode == InputMode.MovingStart)
+        {
+            StartPoint = Engine.MousePosition;
+
+            if (Engine.GetMouseButtonUp(MouseButton.Left))
+            {
+                Input.Mode = InputMode.Default;
+            }
+        }
+        else if (Input.Mode == InputMode.MovingEnd)
+        {
+            EndPoint = Engine.MousePosition;
+
+            if (Engine.GetMouseButtonUp(MouseButton.Left))
+            {
+                Input.Mode = InputMode.Default;
+            }
         }
 
         for (int gy = 0; gy < 20; gy++)
@@ -97,13 +138,18 @@ class Game
             {
                 if (Map[gx, gy])
                 {
+                    Index2 cell = new Index2(gx, gy);
+
                     Engine.DrawTexture(
                         Assets.Tiles,
-                        Origin + new Vector2((gx - gy) * 16, (gy + gx) * 8),
+                        GridCellCorner(cell),
                         source: new Bounds2(0, 0, 32, 32));
                 }
             }
         }
+
+        DrawIsoSprite(Assets.PostGreen, StartPoint);
+        DrawIsoSprite(Assets.PostRed, EndPoint);
 
         if (MustSaveMap)
         {
@@ -125,4 +171,33 @@ class Game
             }
         }
     }
+
+    Vector2 GridCellCorner(Index2 cell)
+    {
+        return Origin + new Vector2((cell.X - cell.Y) * 16, (cell.X + cell.Y) * 8);
+    }
+
+    Vector2 GridCellCenter(Index2 cell)
+    {
+        return GridCellCorner(cell) + new Vector2(16, 24);
+    }
+
+    void DrawIsoSprite(Texture texture, Vector2 center)
+    {
+        Engine.DrawTexture(texture, center - texture.Size * new Vector2(0.5f, 0.75f));
+    }
+}
+
+class InputState
+{
+    public InputMode Mode;
+    public int State;
+}
+
+enum InputMode
+{
+    Default,
+    EditingTiles,
+    MovingStart,
+    MovingEnd,
 }

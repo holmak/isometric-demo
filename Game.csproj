@@ -58,6 +58,7 @@
     <Compile Include="Engine\Graphics.cs" />
     <Compile Include="Engine\Input.cs" />
     <Compile Include="Engine\Engine.cs" />
+    <Compile Include="Engine\Utility\Index2.cs" />
     <Compile Include="Game\Game.cs" />
     <Compile Include="Engine\SDL2\SDL2.cs" />
     <Compile Include="Engine\SDL2\SDL2_image.cs" />

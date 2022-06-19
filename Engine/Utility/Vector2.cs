@@ -31,6 +31,11 @@ struct Vector2
         return (float)Math.Sqrt(X * X + Y * Y);
     }
 
+    public float DistanceTo(Vector2 other)
+    {
+        return (other - this).Length();
+    }
+
     /// <summary>
     /// Returns a copy of this vector rotated clockwise around the origin.
     /// </summary>
