@@ -13,6 +13,7 @@ static class Assets
     public static Texture Tiles;
     public static Texture PostRed;
     public static Texture PostGreen;
+    public static Texture DotRed;
 }
 
 class Game
@@ -80,19 +81,53 @@ class Game
         Assets.DefaultFont = new SpriteFont("font.png");
         Assets.Tiles = Engine.LoadTexture("tiles.png");
         Assets.PostRed = Engine.LoadTexture("post_red.png");
-        Assets.PostGreen = Engine.LoadTexture("post_green.png");
+        Assets.PostGreen = Engine.LoadTexture("post_green.png"); 
+        Assets.DotRed = Engine.LoadTexture("dot_red.png");
     }
 
     public void Update()
     {
-        int hx, hy;
+        // Pathfinding
+        List<Index2> path = new List<Index2>();
         {
-            Vector2 query = Engine.MousePosition - Origin - new Vector2(16, 16);
-            hx = (int)Math.Floor((query.X / 32) + (query.Y / 16));
-            hy = (int)Math.Floor((-query.X / 32) + (query.Y / 16));
+            Index2 start = CellAtPoint(StartPoint);
+            Index2 end = CellAtPoint(EndPoint);
+
+            Queue<Index2> frontier = new Queue<Index2>();
+            Dictionary<Index2, Index2> backlinks = new Dictionary<Index2, Index2>();
+            frontier.Enqueue(start);
+
+            while (frontier.Count > 0)
+            {
+                Index2 here = frontier.Dequeue();
+
+                if (here == end)
+                {
+                    while (here != start)
+                    {
+                        path.Add(here);
+                        here = backlinks[here];
+                    }
+
+                    path.Reverse();
+                    break;
+                }
+
+                foreach (Index2 offset in Index2.NeigborOffsets)
+                {
+                    Index2 neighbor = here + offset;
+                    if (!backlinks.ContainsKey(neighbor) && GetCell(neighbor))
+                    {
+                        frontier.Enqueue(neighbor);
+                        backlinks.Add(neighbor, here);
+                    }
+                }
+            }
         }
 
-        Assets.DefaultFont.Draw(string.Format("Hovered: {0}, {1}", hx, hy), new Vector2(20, 40), Color.White);
+        Index2 hoveredCell = CellAtPoint(Engine.MousePosition);
+
+        Assets.DefaultFont.Draw(string.Format("Hovered: {0}", hoveredCell), new Vector2(20, 40), Color.White);
 
         if (Input.Mode == InputMode.Default)
         {
@@ -106,9 +141,9 @@ class Game
                 {
                     Input.Mode = InputMode.MovingEnd;
                 }
-                else if (hx >= 0 && hx < Map.GetLength(0) && hy >= 0 && hy < Map.GetLength(1))
+                else if (CellInBounds(hoveredCell))
                 {
-                    Map[hx, hy] = !Map[hx, hy];
+                    SetCell(hoveredCell, !GetCell(hoveredCell));
                     MustSaveMap = true;
                 }
             }
@@ -136,16 +171,21 @@ class Game
         {
             for (int gx = 0; gx < 20; gx++)
             {
-                if (Map[gx, gy])
-                {
-                    Index2 cell = new Index2(gx, gy);
+                Index2 cell = new Index2(gx, gy);
 
+                if (GetCell(cell))
+                {
                     Engine.DrawTexture(
                         Assets.Tiles,
                         GridCellCorner(cell),
                         source: new Bounds2(0, 0, 32, 32));
                 }
             }
+        }
+
+        foreach (Index2 cell in path)
+        {
+            DrawIsoSprite(Assets.DotRed, GridCellCenter(cell));
         }
 
         DrawIsoSprite(Assets.PostGreen, StartPoint);
@@ -180,6 +220,36 @@ class Game
     Vector2 GridCellCenter(Index2 cell)
     {
         return GridCellCorner(cell) + new Vector2(16, 24);
+    }
+
+    Index2 CellAtPoint(Vector2 point)
+    {
+        point = point - Origin - new Vector2(16, 16);
+        return new Index2(
+            (int)Math.Floor((point.X / 32) + (point.Y / 16)),
+            (int)Math.Floor((-point.X / 32) + (point.Y / 16)));
+    }
+
+    bool CellInBounds(Index2 cell)
+    {
+        return cell.X >= 0 && cell.X < Map.GetLength(0) && cell.Y >= 0 && cell.Y < Map.GetLength(1);
+    }
+
+    bool GetCell(Index2 cell)
+    {
+        if (CellInBounds(cell))
+        {
+            return Map[cell.X, cell.Y];
+        }
+        else
+        {
+            return false;
+        }
+    }
+
+    void SetCell(Index2 cell, bool value)
+    {
+        Map[cell.X, cell.Y] = value;
     }
 
     void DrawIsoSprite(Texture texture, Vector2 center)
