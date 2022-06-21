@@ -59,6 +59,7 @@
     <Compile Include="Engine\Input.cs" />
     <Compile Include="Engine\Engine.cs" />
     <Compile Include="Engine\Utility\Index2.cs" />
+    <Compile Include="Game\Agent.cs" />
     <Compile Include="Game\Game.cs" />
     <Compile Include="Engine\SDL2\SDL2.cs" />
     <Compile Include="Engine\SDL2\SDL2_image.cs" />
@@ -66,6 +67,7 @@
     <Compile Include="Engine\SDL2\SDL2_mixer.cs" />
     <Compile Include="Engine\SDL2\SDL2_ttf.cs" />
     <Compile Include="Game\SpriteFont.cs" />
+    <Compile Include="Game\Utility.cs" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <PropertyGroup>

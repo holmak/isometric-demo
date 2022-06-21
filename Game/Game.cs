@@ -26,13 +26,14 @@ class Game
 
     static readonly string MapFilePath = "tile.map";
     static readonly int MapFileVersion = 1;
-    static readonly float ClickToSelectRadius = 8;
+    static readonly float AgentSpeed = 5.0f;
+    static readonly float WaypointRadius = 0.1f;
 
     Vector2 Origin = new Vector2(600, 140);
     bool[,] Map;
     bool MustSaveMap = false;
-    Vector2 StartPoint, EndPoint;
     InputState Input = new InputState();
+    List<Agent> Agents = new List<Agent>();
 
     public Game()
     {
@@ -72,11 +73,10 @@ class Game
             }
         }
 
-        StartPoint = GridCellCenter(new Index2(2, 1));
-        EndPoint = GridCellCenter(new Index2(15, 5));
+        Reset();
     }
 
-    public void LoadAssets()
+    void LoadAssets()
     {
         Assets.DefaultFont = new SpriteFont("font.png");
         Assets.Tiles = Engine.LoadTexture("tiles.png");
@@ -85,87 +85,103 @@ class Game
         Assets.DotRed = Engine.LoadTexture("dot_red.png");
     }
 
+    void Reset()
+    {
+        Agents.Clear();
+
+        for (int i = 0; i < 3; i++)
+        {
+            Vector2 pos = CellCenter(new Index2(i, 0));
+            Agents.Add(new Agent
+            {
+                Position = pos,
+                GoalShown = pos,
+            });
+        }
+    }
+
     public void Update()
     {
-        // Pathfinding
-        List<Index2> path = new List<Index2>();
+        //=========================================================================
+        // Reset
+        //=========================================================================
+
+        if (Engine.GetKeyDown(Key.F2))
         {
-            Index2 start = CellAtPoint(StartPoint);
-            Index2 end = CellAtPoint(EndPoint);
-
-            Queue<Index2> frontier = new Queue<Index2>();
-            Dictionary<Index2, Index2> backlinks = new Dictionary<Index2, Index2>();
-            frontier.Enqueue(start);
-
-            while (frontier.Count > 0)
-            {
-                Index2 here = frontier.Dequeue();
-
-                if (here == end)
-                {
-                    while (here != start)
-                    {
-                        path.Add(here);
-                        here = backlinks[here];
-                    }
-
-                    path.Reverse();
-                    break;
-                }
-
-                foreach (Index2 offset in Index2.NeigborOffsets)
-                {
-                    Index2 neighbor = here + offset;
-                    if (!backlinks.ContainsKey(neighbor) && GetCell(neighbor))
-                    {
-                        frontier.Enqueue(neighbor);
-                        backlinks.Add(neighbor, here);
-                    }
-                }
-            }
+            Reset();
         }
 
-        Index2 hoveredCell = CellAtPoint(Engine.MousePosition);
+        //=========================================================================
+        // Agent behavior
+        //=========================================================================
 
-        Assets.DefaultFont.Draw(string.Format("Hovered: {0}", hoveredCell), new Vector2(20, 40), Color.White);
+        foreach (Agent self in Agents)
+        {
+            Vector2 immediateTarget = self.Position;
 
+            while (self.Path.Count > 0)
+            {
+                Index2 next = self.Path[0];
+                immediateTarget = CellCenter(next);
+
+                if (self.Position.DistanceTo(CellCenter(next)) < WaypointRadius)
+                {
+                    self.Path.RemoveAt(0);
+                }
+                else
+                {
+                    break;
+                }
+            }
+
+            Vector2 motion = immediateTarget - self.Position;
+            float distance = motion.Length();
+            if (distance > 0)
+            {
+                float limit = Math.Min(distance, AgentSpeed * Engine.TimeDelta);
+                motion *= (limit / distance);
+            }
+
+            self.Position += motion;
+        }
+
+        //=========================================================================
+        // Input processing
+        //=========================================================================
+
+        Index2 hoveredCell = RoundToGridCell(ScreenToGrid(Engine.MousePosition));
+        Vector2 hovered = ScreenToGrid(Engine.MousePosition);
+
+        Assets.DefaultFont.Draw(string.Format("Hovered cell: {0}", hoveredCell), new Vector2(20, 40), Color.White);
+        Assets.DefaultFont.Draw(string.Format("Hovered: {0}", hovered), new Vector2(20, 60), Color.White);
+        
         if (Input.Mode == InputMode.Default)
         {
             if (Engine.GetMouseButtonDown(MouseButton.Left))
             {
-                if (StartPoint.DistanceTo(Engine.MousePosition) < ClickToSelectRadius)
-                {
-                    Input.Mode = InputMode.MovingStart;
-                }
-                else if (EndPoint.DistanceTo(Engine.MousePosition) < ClickToSelectRadius)
-                {
-                    Input.Mode = InputMode.MovingEnd;
-                }
-                else if (CellInBounds(hoveredCell))
+                if (CellInBounds(hoveredCell))
                 {
                     SetCell(hoveredCell, !GetCell(hoveredCell));
                     MustSaveMap = true;
                 }
             }
         }
-        else if (Input.Mode == InputMode.MovingStart)
-        {
-            StartPoint = Engine.MousePosition;
 
-            if (Engine.GetMouseButtonUp(MouseButton.Left))
+        if (Engine.GetMouseButtonDown(MouseButton.Right))
+        {
+            Vector2 target = ScreenToGrid(Engine.MousePosition);
+
+            foreach (Agent agent in Agents)
             {
-                Input.Mode = InputMode.Default;
+                agent.Path = FindPath(RoundToGridCell(agent.Position), RoundToGridCell(target));
+                agent.GoalShown = target;
+                target.X += 2;
             }
         }
-        else if (Input.Mode == InputMode.MovingEnd)
-        {
-            EndPoint = Engine.MousePosition;
-
-            if (Engine.GetMouseButtonUp(MouseButton.Left))
-            {
-                Input.Mode = InputMode.Default;
-            }
-        }
+        
+        //=========================================================================
+        // Draw
+        //=========================================================================
 
         for (int gy = 0; gy < 20; gy++)
         {
@@ -175,21 +191,29 @@ class Game
 
                 if (GetCell(cell))
                 {
+                    Vector2 pos = Origin + new Vector2((cell.X - cell.Y) * 16 - 16, (cell.X + cell.Y) * 8 - 16);
                     Engine.DrawTexture(
                         Assets.Tiles,
-                        GridCellCorner(cell),
+                        pos,
                         source: new Bounds2(0, 0, 32, 32));
                 }
             }
         }
 
-        foreach (Index2 cell in path)
+        foreach (Agent agent in Agents)
         {
-            DrawIsoSprite(Assets.DotRed, GridCellCenter(cell));
+            foreach (Index2 waypoint in agent.Path)
+            {
+                DrawIsoSprite(Assets.DotRed, CellCenter(waypoint));
+            }
+
+            DrawIsoSprite(Assets.PostRed, agent.GoalShown);
+            DrawIsoSprite(Assets.PostGreen, agent.Position);
         }
 
-        DrawIsoSprite(Assets.PostGreen, StartPoint);
-        DrawIsoSprite(Assets.PostRed, EndPoint);
+        //=========================================================================
+        // End of frame
+        //=========================================================================
 
         if (MustSaveMap)
         {
@@ -212,22 +236,30 @@ class Game
         }
     }
 
-    Vector2 GridCellCorner(Index2 cell)
+    Vector2 GridToScreen(Vector2 grid)
     {
-        return Origin + new Vector2((cell.X - cell.Y) * 16, (cell.X + cell.Y) * 8);
+        return Origin + new Vector2((grid.X - grid.Y) * 16, (grid.X + grid.Y) * 8);
     }
 
-    Vector2 GridCellCenter(Index2 cell)
+    /// <summary>
+    /// Returns the fractional grid coordinate corresponding to the screen position.
+    /// </summary>
+    Vector2 ScreenToGrid(Vector2 point)
     {
-        return GridCellCorner(cell) + new Vector2(16, 24);
+        point = point - Origin;
+        return new Vector2(
+            (point.X / 32) + (point.Y / 16),
+            (-point.X / 32) + (point.Y / 16));
     }
 
-    Index2 CellAtPoint(Vector2 point)
+    Index2 RoundToGridCell(Vector2 grid)
     {
-        point = point - Origin - new Vector2(16, 16);
-        return new Index2(
-            (int)Math.Floor((point.X / 32) + (point.Y / 16)),
-            (int)Math.Floor((-point.X / 32) + (point.Y / 16)));
+        return new Index2((int)Math.Floor(grid.X), (int)Math.Floor(grid.Y));
+    }
+
+    Vector2 CellCenter(Index2 cell)
+    {
+        return new Vector2(cell.X + 0.5f, cell.Y + 0.5f);
     }
 
     bool CellInBounds(Index2 cell)
@@ -254,7 +286,44 @@ class Game
 
     void DrawIsoSprite(Texture texture, Vector2 center)
     {
-        Engine.DrawTexture(texture, center - texture.Size * new Vector2(0.5f, 0.75f));
+        Engine.DrawTexture(texture, GridToScreen(center) - texture.Size * new Vector2(0.5f, 0.75f));
+    }
+
+    List<Index2> FindPath(Index2 start, Index2 end)
+    {
+        Queue<Index2> frontier = new Queue<Index2>();
+        Dictionary<Index2, Index2> backlinks = new Dictionary<Index2, Index2>();
+        frontier.Enqueue(start);
+
+        while (frontier.Count > 0)
+        {
+            Index2 here = frontier.Dequeue();
+
+            if (here == end)
+            {
+                List<Index2> path = new List<Index2>();
+                while (here != start)
+                {
+                    path.Add(here);
+                    here = backlinks[here];
+                }
+
+                path.Reverse();
+                return path;
+            }
+
+            foreach (Index2 offset in Index2.NeigborOffsets)
+            {
+                Index2 neighbor = here + offset;
+                if (!backlinks.ContainsKey(neighbor) && GetCell(neighbor))
+                {
+                    frontier.Enqueue(neighbor);
+                    backlinks.Add(neighbor, here);
+                }
+            }
+        }
+
+        return new List<Index2>();
     }
 }
 
@@ -268,6 +337,4 @@ enum InputMode
 {
     Default,
     EditingTiles,
-    MovingStart,
-    MovingEnd,
 }
