@@ -24,7 +24,7 @@ class Game
     public static readonly bool Debug = true;
     public static readonly bool DebugCollision = false;
 
-    static readonly string MapFilePath = "tile.map";
+    static string MapFilePath => Engine.GetAssetPath("tile.map");
     static readonly int MapFileVersion = 1;
     static readonly float AgentSpeed = 5.0f;
     static readonly float WaypointRadius = 0.1f;
@@ -39,29 +39,10 @@ class Game
     {
         LoadAssets();
 
-        // Load map:
-        if (File.Exists(MapFilePath))
+        // Initialize the default map:
         {
-            using (BinaryReader r = new BinaryReader(File.OpenRead(MapFilePath)))
-            {
-                int version = r.ReadInt32();
-                int width = r.ReadInt32();
-                int height = r.ReadInt32();
-                Map = new bool[width, height];
-
-                for (int gy = 0; gy < height; gy++)
-                {
-                    for (int gx = 0; gx < width; gx++)
-                    {
-                        Map[gx, gy] = r.ReadBoolean();
-                    }
-                }
-            }
-        }
-        else
-        {
-            int width = 20;
-            int height = 20;
+            int width = 30;
+            int height = 30;
             Map = new bool[width, height];
 
             for (int gy = 0; gy < height; gy++)
@@ -69,6 +50,28 @@ class Game
                 for (int gx = 0; gx < width; gx++)
                 {
                     Map[gx, gy] = true;
+                }
+            }
+        }
+
+        // Load saved map data:
+        if (File.Exists(MapFilePath))
+        {
+            using (BinaryReader r = new BinaryReader(File.OpenRead(MapFilePath)))
+            {
+                int version = r.ReadInt32();
+                int width = r.ReadInt32();
+                int height = r.ReadInt32();
+
+                width = Math.Min(width, Map.GetLength(0));
+                height = Math.Min(height, Map.GetLength(1));
+
+                for (int gy = 0; gy < height; gy++)
+                {
+                    for (int gx = 0; gx < width; gx++)
+                    {
+                        Map[gx, gy] = r.ReadBoolean();
+                    }
                 }
             }
         }
@@ -153,7 +156,7 @@ class Game
         Vector2 hovered = ScreenToGrid(Engine.MousePosition);
 
         Assets.DefaultFont.Draw(string.Format("Hovered cell: {0}", hoveredCell), new Vector2(20, 40), Color.White);
-        Assets.DefaultFont.Draw(string.Format("Hovered: {0}", hovered), new Vector2(20, 60), Color.White);
+        Assets.DefaultFont.Draw(string.Format("Hovered coordinate: {0}", hovered), new Vector2(20, 60), Color.White);
         
         if (Input.Mode == InputMode.Default)
         {
@@ -183,9 +186,9 @@ class Game
         // Draw
         //=========================================================================
 
-        for (int gy = 0; gy < 20; gy++)
+        for (int gy = 0; gy < Map.GetLength(1); gy++)
         {
-            for (int gx = 0; gx < 20; gx++)
+            for (int gx = 0; gx < Map.GetLength(0); gx++)
             {
                 Index2 cell = new Index2(gx, gy);
 

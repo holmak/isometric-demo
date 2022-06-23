@@ -5,7 +5,7 @@ using System.IO;
 
 static partial class Engine
 {
-    private static string GetAssetPath(string path)
+    public static string GetAssetPath(string path)
     {
         return Path.Combine("Assets", path);
     }
