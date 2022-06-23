@@ -26,6 +26,7 @@ class Game
 
     static string MapFilePath => Engine.GetAssetPath("tile.map");
     static readonly int MapFileVersion = 1;
+    static readonly int MaxAgents = 10;
     static readonly float AgentSpeed = 5.0f;
     static readonly float WaypointRadius = 0.1f;
 
@@ -34,6 +35,7 @@ class Game
     bool MustSaveMap = false;
     InputState Input = new InputState();
     List<Agent> Agents = new List<Agent>();
+    Random Random = new Random();
 
     public Game()
     {
@@ -92,7 +94,7 @@ class Game
     {
         Agents.Clear();
 
-        for (int i = 0; i < 3; i++)
+        for (int i = 0; i < MaxAgents; i++)
         {
             Vector2 pos = CellCenter(new Index2(i, 0));
             Agents.Add(new Agent
@@ -120,6 +122,13 @@ class Game
 
         foreach (Agent self in Agents)
         {
+            if (self.Path.Count == 0)
+            {
+                Index2 goal = new Index2(Random.Next(Map.GetLength(0)), Random.Next(Map.GetLength(1)));
+                self.Path = FindPath(RoundToGridCell(self.Position), goal);
+                self.GoalShown = CellCenter(goal);
+            }
+
             Vector2 immediateTarget = self.Position;
 
             while (self.Path.Count > 0)
@@ -178,7 +187,7 @@ class Game
             {
                 agent.Path = FindPath(RoundToGridCell(agent.Position), RoundToGridCell(target));
                 agent.GoalShown = target;
-                target.X += 2;
+                target.X += 1;
             }
         }
         
