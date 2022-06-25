@@ -19,7 +19,7 @@ static class Assets
 class Game
 {
     public static readonly string Title = "Isometric Demo";
-    public static readonly Vector2 Resolution = new Vector2(1280, 768);
+    public static readonly Vector2 Resolution = new Vector2(960, 540);
 
     public static readonly bool Debug = true;
     public static readonly bool DebugCollision = false;
@@ -30,7 +30,7 @@ class Game
     static readonly float AgentSpeed = 5.0f;
     static readonly float WaypointRadius = 0.1f;
 
-    Vector2 Origin = new Vector2(600, 140);
+    Vector2 Origin = new Vector2(480, 40);
     bool[,] Map;
     bool MustSaveMap = false;
     InputState Input = new InputState();
