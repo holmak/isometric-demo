@@ -66,6 +66,8 @@
     <Compile Include="Engine\Utility\Vector2.cs" />
     <Compile Include="Engine\SDL2\SDL2_mixer.cs" />
     <Compile Include="Engine\SDL2\SDL2_ttf.cs" />
+    <Compile Include="Game\Screens\BocageGeneratorScreen.cs" />
+    <Compile Include="Game\Screens\IsometricPathfindingScreen.cs" />
     <Compile Include="Game\SpriteFont.cs" />
     <Compile Include="Game\Utility.cs" />
   </ItemGroup>
