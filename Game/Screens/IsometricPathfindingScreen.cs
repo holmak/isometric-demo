@@ -15,7 +15,6 @@ class IsometricPathfindingScreen : Screen
     Vector2 Origin = new Vector2(480, 40);
     bool[,] Map;
     bool MustSaveMap = false;
-    InputState Input = new InputState();
     List<Agent> Agents = new List<Agent>();
     Random Random = new Random();
 
@@ -138,15 +137,12 @@ class IsometricPathfindingScreen : Screen
         Assets.DefaultFont.Draw(string.Format("Hovered cell: {0}", hoveredCell), new Vector2(20, 40), Color.White);
         Assets.DefaultFont.Draw(string.Format("Hovered coordinate: {0}", hovered), new Vector2(20, 60), Color.White);
 
-        if (Input.Mode == InputMode.Default)
+        if (Engine.GetMouseButtonDown(MouseButton.Left))
         {
-            if (Engine.GetMouseButtonDown(MouseButton.Left))
+            if (CellInBounds(hoveredCell))
             {
-                if (CellInBounds(hoveredCell))
-                {
-                    SetCell(hoveredCell, !GetCell(hoveredCell));
-                    MustSaveMap = true;
-                }
+                SetCell(hoveredCell, !GetCell(hoveredCell));
+                MustSaveMap = true;
             }
         }
 
@@ -308,16 +304,4 @@ class IsometricPathfindingScreen : Screen
 
         return new List<Index2>();
     }
-}
-
-class InputState
-{
-    public InputMode Mode;
-    public int State;
-}
-
-enum InputMode
-{
-    Default,
-    EditingTiles,
 }
