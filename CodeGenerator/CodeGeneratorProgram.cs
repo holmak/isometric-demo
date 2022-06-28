@@ -47,7 +47,7 @@ public static class CodeGeneratorProgram
             string filename = Path.GetFileName(path);
             string name = Path.GetFileNameWithoutExtension(path);
 
-            output.AppendLine(string.Format("        {0} = new SpriteFont(\"{1}\");", name, filename));
+            output.AppendLine(string.Format("        {0} = new SpriteFont(\"Fonts/{1}\");", name, filename));
         }
 
         foreach (string path in texturePaths)
@@ -55,7 +55,7 @@ public static class CodeGeneratorProgram
             string filename = Path.GetFileName(path);
             string name = Path.GetFileNameWithoutExtension(path);
 
-            output.AppendLine(string.Format("        {0} = Engine.LoadTexture(\"{1}\");", name, filename));
+            output.AppendLine(string.Format("        {0} = Engine.LoadTexture(\"Textures/{1}\");", name, filename));
         }
 
         output.AppendLine("    }");
