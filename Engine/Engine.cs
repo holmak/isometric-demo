@@ -104,7 +104,7 @@ static partial class Engine
 
             // Clear and start drawing into the render target:
             SDL.SDL_SetRenderTarget(Renderer, RenderTarget.Handle);
-            SDL.SDL_SetRenderDrawColor(Renderer, 64, 64, 128, 255);
+            SDL.SDL_SetRenderDrawColor(Renderer, 128, 128, 128, 255);
             SDL.SDL_RenderClear(Renderer);
 
             // Update game logic:

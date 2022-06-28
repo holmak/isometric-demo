@@ -17,6 +17,12 @@ static partial class Engine
         SDL.SDL_SetRenderDrawBlendMode(Renderer, SDL.SDL_BlendMode.SDL_BLENDMODE_BLEND);
     }
 
+    public static void Clear(Color color)
+    {
+        DrawPrimitiveSetup(color);
+        SDL.SDL_RenderClear(Renderer);
+    }
+
     /// <summary>
     /// Draws a line.
     /// </summary>

@@ -162,6 +162,8 @@ class IsometricPathfindingScreen : Screen
         // Draw
         //=========================================================================
 
+        Engine.Clear(new Color(64, 64, 128));
+
         for (int gy = 0; gy < Map.GetLength(1); gy++)
         {
             for (int gx = 0; gx < Map.GetLength(0); gx++)

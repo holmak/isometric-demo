@@ -15,11 +15,7 @@ class Game
     public Game()
     {
         Assets.LoadAll();
-        SetScreen(new IsometricPathfindingScreen());
-    }
-
-    void LoadAssets()
-    {
+        SetScreen(new BocageGeneratorScreen());
     }
 
     void SetScreen(Screen screen)

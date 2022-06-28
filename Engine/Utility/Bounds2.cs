@@ -8,6 +8,8 @@ struct Bounds2
 
     public Vector2 Min => Position;
     public Vector2 Max => Position + Size;
+    public float Width => Size.X;
+    public float Height => Size.Y;
 
     /// <summary>
     /// Creates a new 2D bounds rectangle.
@@ -59,5 +61,10 @@ struct Bounds2
     public Bounds2 Translated(Vector2 offset)
     {
         return new Bounds2(Position + offset, Size);
+    }
+
+    public Bounds2 Expanded(float amount)
+    {
+        return new Bounds2(Min.X + amount, Min.Y + amount, Width - 2 * amount, Height - 2 * amount);
     }
 }
